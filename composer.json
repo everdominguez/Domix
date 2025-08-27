@@ -1,0 +1,14 @@
+{
+    "require": {
+        "smalot/pdfparser": "^2.12",
+        "phpoffice/phpspreadsheet": "^4.5",
+        "phpcfdi/cfdi-sat-scraper": "^4.0",
+        "phpcfdi/image-captcha-resolver": "^0.2.4",
+        "phpcfdi/image-captcha-resolver-boxfactura-ai": "^0.1.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}

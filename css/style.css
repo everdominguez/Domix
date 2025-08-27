@@ -1,0 +1,153 @@
+/* Paleta sobria: negro, gris y blanco */
+body {
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+.navbar {
+  background-color: #212529;
+}
+
+.navbar-brand,
+.nav-link {
+  color: #ffffff !important;
+}
+
+.navbar-brand:hover,
+.nav-link:hover {
+  color: #adb5bd !important;
+}
+
+.card-header {
+  background-color: #343a40;
+  color: white;
+}
+
+.btn-success {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.table thead {
+  background-color: #343a40;
+  color: white;
+}
+
+.formulario-generico {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.card-form {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  margin: 0 auto;
+  max-width: 700px;
+}
+
+.card-form h2 {
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+
+.card-form .form-control,
+.card-form .form-select {
+  border-radius: 0.5rem;
+}
+
+.card-form .btn-primary {
+  margin-top: 1rem;
+  padding: 0.5rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+/* Encabezados ordenables */
+.table thead th a.sort-link {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-weight: 600;
+  color: #0d6efd !important;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.table thead th a.sort-link:hover {
+  background-color: #e9ecef;
+  text-decoration: underline;
+}
+
+/* --- Navbar: nombre de empresa largo (truncate con ellipsis) --- */
+.navbar .company-item {
+  min-width: 0;
+  max-width: 320px;
+}
+.navbar .company-name {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+@media (max-width: 1200px) {
+  .navbar .company-item { max-width: 240px; }
+}
+@media (max-width: 992px) {
+  .navbar .company-item { max-width: 180px; }
+}
+
+/* --- Servicios Contratados: zebra uniforme + bordes consistentes --- */
+
+/* Todas las celdas usan el fondo definido por la fila (Bootstrap vars) */
+.table-services > :not(caption) > * > * {
+  background-color: var(--bs-table-bg) !important;
+  border-bottom: 1px solid #dee2e6 !important; /* misma línea separadora */
+  background-clip: padding-box;                /* evita “fugas” bajo el borde */
+}
+
+/* Filas impares en gris suave; pares en blanco */
+.table-services.table-striped > tbody > tr:nth-of-type(odd) {
+  --bs-table-bg: #f4f5f7;
+  --bs-table-accent-bg: #f4f5f7;
+}
+.table-services.table-striped > tbody > tr:nth-of-type(even) {
+  --bs-table-bg: #ffffff;
+  --bs-table-accent-bg: #ffffff;
+}
+
+/* Columna Acciones: hereda el fondo y no deja huecos blancos */
+.table-services td.actions-cell {
+  background-color: inherit !important; /* gris o blanco de la fila */
+  background-clip: padding-box;
+  align-items: center;                  /* centra verticalmente los botones */
+}
+
+/* Si hay wrappers dentro de Acciones, que no pinten blanco */
+.table-services td.actions-cell > .bg-white,
+.table-services td.actions-cell > .card,
+.table-services td.actions-cell > .p-2,
+.table-services td.actions-cell > .px-2,
+.table-services td.actions-cell > .py-2 {
+  background-color: transparent !important;
+}
+
+/* Importante: no tocar .btn para que mantenga colores Bootstrap */
+
+/* Asegurar que la celda de acciones use el fondo de la fila */
+.table-services td.actions-cell {
+  background-color: inherit !important;
+  background-clip: padding-box;
+}
+
+/* Hacer que cualquier contenedor dentro de Acciones sea transparente */
+.table-services td.actions-cell *:not(.btn) {
+  background-color: transparent !important;
+}
+
+/* Opcional: alinear los botones al centro vertical */
+.table-services td.actions-cell {
+  vertical-align: middle;
+}

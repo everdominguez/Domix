@@ -1,0 +1,38 @@
+[2025-08-16 13:20:02] ERROR: No existe /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/storage/boxfactura-model/configs.yaml. Ejecuta el script de descarga del modelo.
+[2025-08-16 13:20:09] ERROR: No existe /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/storage/boxfactura-model/configs.yaml. Ejecuta el script de descarga del modelo.
+[2025-08-16 13:27:13] DEMS: ERROR → Connection error when getting captcha image
+[2025-08-16 13:31:56] DEMS recibidos: consultando 2025-08-15T00:00:00-06:00 → 2025-08-15T06:00:00-06:00
+[2025-08-16 13:31:57] DEMS recibidos: encontrados 1 CFDI
+[2025-08-16 13:31:57] Guardados XML en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16 (UUIDs en manifest_20250816_133157.txt)
+[2025-08-16 13:31:57] DEMS recibidos: consultando 2025-08-15T06:00:01-06:00 → 2025-08-15T12:00:01-06:00
+[2025-08-16 13:31:58] DEMS recibidos: encontrados 1 CFDI
+[2025-08-16 13:31:58] Guardados XML en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16 (UUIDs en manifest_20250816_133158.txt)
+[2025-08-16 13:31:58] DEMS recibidos: consultando 2025-08-15T12:00:02-06:00 → 2025-08-15T18:00:02-06:00
+[2025-08-16 13:31:58] DEMS recibidos: encontrados 1 CFDI
+[2025-08-16 13:31:59] Guardados XML en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16 (UUIDs en manifest_20250816_133159.txt)
+[2025-08-16 13:31:59] DEMS recibidos: consultando 2025-08-15T18:00:03-06:00 → 2025-08-16T00:00:03-06:00
+[2025-08-16 13:31:59] DEMS recibidos: encontrados 1 CFDI
+[2025-08-16 13:32:00] Guardados XML en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16 (UUIDs en manifest_20250816_133200.txt)
+[2025-08-16 13:32:00] DEMS recibidos: consultando 2025-08-16T00:00:04-06:00 → 2025-08-16T06:00:04-06:00
+[2025-08-16 13:32:00] DEMS recibidos: encontrados 0 CFDI
+[2025-08-16 13:32:00] DEMS recibidos: consultando 2025-08-16T06:00:05-06:00 → 2025-08-16T12:00:05-06:00
+[2025-08-16 13:32:01] DEMS recibidos: encontrados 0 CFDI
+[2025-08-16 13:32:01] DEMS recibidos: consultando 2025-08-16T12:00:06-06:00 → 2025-08-16T18:00:06-06:00
+[2025-08-16 13:32:01] DEMS recibidos: encontrados 0 CFDI
+[2025-08-16 13:32:01] DEMS recibidos: consultando 2025-08-16T18:00:07-06:00 → 2025-08-16T23:59:59-06:00
+[2025-08-16 13:32:02] DEMS recibidos: encontrados 0 CFDI
+[2025-08-16 13:32:02] DEMS: ciclo completado (solo descarga).
+[2025-08-16 13:38:36] DEMS recibidos: consultando 2025-08-15T00:00:00-06:00 → 2025-08-16T23:59:59-06:00
+[2025-08-16 13:38:37] DEMS recibidos: encontrados 1 CFDI
+[2025-08-16 13:38:37] Guardados XML en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16 (UUIDs en manifest_20250816_133837.txt)
+[2025-08-16 13:38:37] DEMS: ciclo completado (solo descarga).
+[2025-08-16 13:45:51] DEMS recibidos (XML+PDF): consultando 2025-08-15T00:00:00-06:00 → 2025-08-16T23:59:59-06:00
+[2025-08-16 13:45:52] DEMS recibidos: encontrados 1 CFDI
+[2025-08-16 13:45:52] Guardados XML en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16/XML (UUIDs en manifest_xml_20250816_134552.txt)
+[2025-08-16 13:45:53] Guardados PDF en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16/PDF (UUIDs en manifest_pdf_20250816_134553.txt)
+[2025-08-16 13:45:53] DEMS: ciclo completado (solo descarga).
+[2025-08-16 13:48:38] DEMS recibidos (XML+PDF): consultando 2025-08-15T00:00:00-06:00 → 2025-08-16T23:59:59-06:00
+[2025-08-16 13:48:39] DEMS recibidos: encontrados 1 CFDI
+[2025-08-16 13:48:40] Guardados XML en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16 (UUIDs en manifest_xml_20250816_134840.txt)
+[2025-08-16 13:48:40] Guardados PDF en: /var/www/vhosts/everdominguez.com/proyectos.everdominguez.com/sat-sync/temp_xmls/DEMS/2025-08-16 (UUIDs en manifest_pdf_20250816_134840.txt)
+[2025-08-16 13:48:40] DEMS: ciclo completado (descarga en carpeta única por fecha).
