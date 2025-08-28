@@ -109,13 +109,36 @@ for ($iFile = 0; $iFile < count($files['name']); $iFile++) {
         $uuid = (is_array($uuidNode) && isset($uuidNode[0]['UUID'])) ? (string)$uuidNode[0]['UUID'] : '';
         if (!$uuid) throw new Exception("No se pudo extraer el UUID");
 
-        /* ===========================
-           Variables de control adicionales
-           =========================== */
         $relacionados = $xml->xpath('//cfdi:CfdiRelacionados') ?: [];
-        $aplica_anticipo_07 = false;
-        $is_anticipo = false;
-        $uuidRelacionadoFinal = null;
+
+/* ===========================
+   Detección de relación 07 (anticipo) y búsqueda de expense_id
+   =========================== */
+$aplica_anticipo_07 = false;
+$is_anticipo        = false;          // (lo mantienes si también manejas facturas de anticipo)
+$uuidRelacionadoFinal = null;         // aquí guardaremos el UUID del anticipo
+$anticipo_expense_id  = null;
+
+$rel = aplicaRelacion07($xml);
+if (!empty($rel['aplica']) && !empty($rel['uuid'])) {
+    $aplica_anticipo_07   = true;
+    $uuidRelacionadoFinal = strtoupper($rel['uuid']);
+
+    $q = $pdo->prepare("SELECT id FROM expenses WHERE company_id = ? AND cfdi_uuid = ? LIMIT 1");
+    $q->execute([$company_id, $uuidRelacionadoFinal]);
+    $foundId = $q->fetchColumn();
+    if ($foundId !== false) {
+        $anticipo_expense_id = (int)$foundId;
+    } else {
+        $resultado_detallado[] = [
+            'archivo' => $fileName,
+            'uuid'    => $uuid,
+            'estatus' => 'advertencia',
+            'mensaje' => "Relación 07 detectada con $uuidRelacionadoFinal, pero no se encontró en expenses."
+        ];
+    }
+}
+
 
         /* ===========================
            Verificar duplicados de UUID
@@ -423,7 +446,7 @@ for ($iFile = 0; $iFile < count($files['name']); $iFile++) {
         /* ===========================
            Importar a inventario
            =========================== */
-        if ($import_inventory && !$is_credit_note && !$is_anticipo && !$aplica_anticipo_07) {
+        if ($import_inventory && !$is_credit_note && !$is_anticipo) {
             $chkInv = $pdo->prepare("
                 SELECT id FROM inventory
                 WHERE company_id = ?
@@ -454,6 +477,7 @@ for ($iFile = 0; $iFile < count($files['name']); $iFile++) {
                 $margin      = $it['margin'] ?? 0.0;
                 $sale_price  = $it['sale_price'] ?? null;
                 $pcode       = $it['product_code'] ?? null;
+    $linked_expense_id = $anticipo_expense_id ?? $expense_id ?? null;                
 
                 $chkInv->execute([$company_id, $uuid, $pcode, $pcode, $qty, $unit_price]);
                 if ($chkInv->fetch()) {
@@ -462,30 +486,30 @@ for ($iFile = 0; $iFile < count($files['name']); $iFile++) {
                     continue;
                 }
 
-                $insInv->execute([
-                    $expense_id ?? null,   // 👈 no lee la variable si no está definida
-                    $company_id,
-                    $project_id ?: null,
-                    $subproject_id ?: null,
-                    $pcode,
-                    $it['description'],
-                    $it['unit'],
-                    $qty,
-                    $unit_price,
-                    $amountSub,
-                    $amountSub,
-                    $vat,
-                    $totalLine,
-                    $invoice_date_sql,
-                    $uuid,
-                    $margin,
-                    $sale_price,
-                    $emisorNombre ?: null,
-                    $emisorRfc ?: null
-                ]);
-                $ins_this_file++;
-            }
-        }
+    $insInv->execute([
+        $linked_expense_id,   // 👈 aquí va el expense_id final a guardar en inventory
+        $company_id,
+        $project_id ?: null,
+        $subproject_id ?: null,
+        $pcode,
+        $it['description'],
+        $it['unit'],
+        $qty,
+        $unit_price,
+        $amountSub,
+        $amountSub,
+        $vat,
+        $totalLine,
+        $invoice_date_sql,
+        $uuid,
+        $margin,
+        $sale_price,
+        $emisorNombre ?: null,
+        $emisorRfc ?: null
+    ]);
+    $ins_this_file++;
+}
+}
         /* ===========================
            Resultado por archivo
            =========================== */
