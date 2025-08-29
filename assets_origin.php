@@ -1,5 +1,5 @@
 <?php
-// assets_origin.php — Listado agrupado por CFDI de compra (inventory.cfdi_uuid)
+// assets_origin.php — Reporte agrupado por CFDI de compra (inventory.cfdi_uuid)
 require_once 'auth.php';
 require_once 'db.php';
 
@@ -17,8 +17,8 @@ function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function n($x){ return number_format((float)$x, 2); }
 
 /* Filtros */
-$q_cfdi   = trim($_GET['q_cfdi'] ?? '');  // buscar por cfdi_uuid
-$q_text   = trim($_GET['q'] ?? '');       // opcional: buscar por descripción/código
+$q_cfdi   = trim($_GET['q_cfdi'] ?? '');
+$q_text   = trim($_GET['q'] ?? '');
 $page     = max(1, (int)($_GET['page'] ?? 1));
 $per_in   = (int)($_GET['per_page'] ?? 25);
 $per_page = in_array($per_in, [10,25,50,100], true) ? $per_in : 25;
@@ -36,13 +36,16 @@ $w = ["inv.company_id = ?", "inv.cfdi_uuid IS NOT NULL", "inv.cfdi_uuid <> ''"];
 $args = [$company_id];
 
 if ($q_cfdi !== '') { $w[] = "inv.cfdi_uuid LIKE ?"; $args[] = "%$q_cfdi%"; }
-if ($q_text !== '') { $w[] = "(inv.description LIKE ? OR inv.product_code LIKE ?)"; $args[] = "%$q_text%"; $args[] = "%$q_text%"; }
-
+if ($q_text !== '') { 
+    $w[] = "(inv.description LIKE ? OR inv.product_code LIKE ?)";
+    $args[] = "%$q_text%"; 
+    $args[] = "%$q_text%"; 
+}
 $where = 'WHERE '.implode(' AND ', $w);
 
 $sql_count = "
   SELECT COUNT(DISTINCT inv.cfdi_uuid)
-    FROM inventory inv
+  FROM inventory inv
   $where
 ";
 $stmtCnt = $pdo->prepare($sql_count);
@@ -54,19 +57,18 @@ if ($page > $total_pages) { $page = $total_pages; $offset = ($page-1)*$per_page;
 /* ====== Datos agrupados por cfdi_uuid ====== */
 $sql = "
   SELECT
-    inv.cfdi_uuid                                       AS cfdi_uuid,
-    COUNT(*)                                            AS items_total,
-    SUM(CASE WHEN inv.active = 0 THEN 1 ELSE 0 END)     AS items_inactivos,
-    COUNT(DISTINCT pi.presale_id)                        AS presales_vinc,
-    COUNT(DISTINCT CASE WHEN p.sale_id IS NOT NULL THEN p.sale_id END) AS ventas_vinc,
-    MAX(inv.id)                                         AS last_inv_id
+    inv.cfdi_uuid AS cfdi_uuid,
+    COUNT(*) AS items_total,
+    SUM(CASE WHEN inv.active = 0 THEN 1 ELSE 0 END) AS items_inactivos,
+    SUM(CASE WHEN pi.id IS NOT NULL THEN 1 ELSE 0 END) AS items_presale,
+    SUM(CASE WHEN si.id IS NOT NULL THEN 1 ELSE 0 END) AS items_sale,
+    SUM(CASE WHEN inv.active = 1 AND si.id IS NULL THEN 1 ELSE 0 END) AS items_activos,
+    MAX(inv.id) AS last_inv_id
   FROM inventory inv
   LEFT JOIN presale_items pi
-         ON pi.company_id = inv.company_id
-        AND pi.inventory_id = inv.id
-  LEFT JOIN presales p
-         ON p.company_id = pi.company_id
-        AND p.id = pi.presale_id
+         ON pi.inventory_id = inv.id
+  LEFT JOIN sale_items si
+         ON si.inventory_id = inv.id
   $where
   GROUP BY inv.cfdi_uuid
   ORDER BY last_inv_id DESC
@@ -131,16 +133,13 @@ include 'header.php';
       <tbody>
         <?php if (!$rows): ?>
           <tr><td colspan="6" class="text-center text-muted py-4">No se encontraron CFDI en inventario.</td></tr>
-        <?php else: foreach ($rows as $r): 
-          $activos   = (int)$r['items_total'] - (int)$r['items_inactivos'];
-          $inactivos = (int)$r['items_inactivos'];
-        ?>
+        <?php else: foreach ($rows as $r): ?>
           <tr>
             <td class="text-mono"><?= e($r['cfdi_uuid']) ?></td>
-            <td class="text-end"><?= $activos ?></td>
-            <td class="text-end"><?= $inactivos ?></td>
-            <td class="text-end"><?= (int)$r['presales_vinc'] ?></td>
-            <td class="text-end"><?= (int)$r['ventas_vinc'] ?></td>
+            <td class="text-end"><?= (int)$r['items_activos'] ?></td>
+            <td class="text-end"><?= (int)$r['items_inactivos'] ?></td>
+            <td class="text-end"><?= (int)$r['items_presale'] ?></td>
+            <td class="text-end"><?= (int)$r['items_sale'] ?></td>
             <td>
               <a class="btn btn-outline-secondary btn-sm"
                  href="assets_origin_view.php?uuid=<?= urlencode($r['cfdi_uuid']) ?>">

@@ -19,11 +19,11 @@ $placeholders = implode(',', array_fill(0, count($idArray), '?'));
 $query = "
   SELECT
     id, product_code, description,
-    quantity,            -- cantidad disponible (base para prorrateo)
-    unit_price,          -- precio unitario
-    amount,              -- subtotal del CFDI (para toda la línea)
-    vat,                 -- IVA del CFDI (para toda la línea)
-    total                -- total del CFDI (para toda la línea)
+    quantity,            -- cantidad disponible
+    unit_price,          -- precio unitario (compra)
+    amount,              -- subtotal del CFDI
+    vat,                 -- IVA del CFDI
+    total                -- total del CFDI
   FROM inventory
   WHERE id IN ($placeholders)
 ";
@@ -61,7 +61,7 @@ if (!$items) {
             <th style="width: 120px;">Código</th>
             <th>Descripción</th>
             <th class="text-end" style="width: 160px;">Cant. a vender</th>
-            <th class="text-end" style="width: 140px;">P. Unitario</th>
+            <th class="text-end" style="width: 160px;">P. Unitario (Venta)</th>
             <th class="text-end" style="width: 140px;">Subtotal</th>
             <th class="text-end" style="width: 120px;">IVA</th>
             <th class="text-end" style="width: 160px;">Total</th>
@@ -70,18 +70,16 @@ if (!$items) {
         <tbody>
           <?php foreach ($items as $item):
             $id     = (int)$item['id'];
-            $qty    = max(0.000001, (float)$item['quantity']); // evitar /0
+            $qty    = max(0.000001, (float)$item['quantity']); 
             $pu     = (float)$item['unit_price'];
             $amount = (float)$item['amount'];
             $vat    = (float)$item['vat'];
             $total  = (float)$item['total'];
 
-            // valores por unidad, prorrateados desde el CFDI
-            $sub_per_u = $amount / $qty;         // puede coincidir con $pu si no hubo descuentos
+            $sub_per_u = $amount / $qty; 
             $iva_per_u = $vat / $qty;
             $tot_per_u = $total / $qty;
 
-            // Para el cálculo inicial usar toda la cantidad disponible
             $row_qty   = (float)$item['quantity'];
             $row_sub   = $sub_per_u * $row_qty;
             $row_iva   = $iva_per_u * $row_qty;
@@ -89,7 +87,10 @@ if (!$items) {
           ?>
           <tr data-id="<?= $id ?>">
             <td class="text-mono"><?= htmlspecialchars($item['product_code'] ?? '') ?></td>
-            <td><?= htmlspecialchars($item['description'] ?? '') ?></td>
+            <td>
+              <?= htmlspecialchars($item['description'] ?? '') ?>
+              <div class="form-text">Disp.: <?= number_format($row_qty, 2) ?></div>
+            </td>
 
             <td class="text-end">
               <input
@@ -101,15 +102,22 @@ if (!$items) {
                 step="any"
                 class="form-control text-end qty-input"
                 data-max="<?= number_format($row_qty, 6, '.', '') ?>"
-                data-subpu="<?= number_format($sub_per_u, 6, '.', '') ?>"
-                data-ivapu="<?= number_format($iva_per_u, 6, '.', '') ?>"
-                data-totpu="<?= number_format($tot_per_u, 6, '.', '') ?>"
                 required
               >
-              <div class="form-text text-end">Disp.: <?= number_format($row_qty, 2) ?></div>
             </td>
 
-            <td class="text-end">$<span class="unit-price" data-value="<?= number_format($pu, 6, '.', '') ?>"><?= number_format($pu, 2) ?></span></td>
+            <td class="text-end">
+              <input
+  type="text"
+  name="price[<?= $id ?>]"
+  value="<?= htmlspecialchars(sprintf('%.2f', $pu)) ?>"
+  pattern="\d+(\.\d{1,2})?"
+  class="form-control text-end price-input"
+  required
+>
+
+            </td>
+
             <td class="text-end">$<span class="row-subtotal"><?= number_format($row_sub, 2) ?></span></td>
             <td class="text-end">$<span class="row-iva"><?= number_format($row_iva, 2) ?></span></td>
             <td class="text-end">$<span class="row-total"><?= number_format($row_tot, 2) ?></span></td>
@@ -149,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function recalcRow(tr){
     const qtyInput = tr.querySelector('.qty-input');
+    const priceInput = tr.querySelector('.price-input');
     const subEl = tr.querySelector('.row-subtotal');
     const ivaEl = tr.querySelector('.row-iva');
     const totEl = tr.querySelector('.row-total');
@@ -157,19 +166,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const qty = clamp(qtyInput.value, 0, max);
     if (qty != qtyInput.value) qtyInput.value = qty;
 
-    const subPU = Number(qtyInput.dataset.subpu || 0);
-    const ivaPU = Number(qtyInput.dataset.ivapu || 0);
-    const totPU = Number(qtyInput.dataset.totpu || 0);
+    const price = Number(priceInput.value || 0);
+    const subtotal = qty * price;
+    const iva = subtotal * 0.16;
+    const total = subtotal + iva;
 
-    const sub = qty * subPU;
-    const iva = qty * ivaPU;
-    const tot = qty * totPU;
-
-    subEl.textContent = fmt(sub);
+    subEl.textContent = fmt(subtotal);
     ivaEl.textContent = fmt(iva);
-    totEl.textContent = fmt(tot);
+    totEl.textContent = fmt(total);
 
-    return {sub, iva, tot};
+    return {sub: subtotal, iva, tot: total};
   }
 
   function recalcAll(){
@@ -183,18 +189,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sumTotal').textContent = fmt(sTot);
   }
 
-  // Eventos para cantidades
-  document.querySelectorAll('.qty-input').forEach(inp => {
+  document.querySelectorAll('.qty-input, .price-input').forEach(inp => {
     inp.addEventListener('input', recalcAll);
     inp.addEventListener('change', recalcAll);
-    inp.addEventListener('blur', e => {
-      const max = Number(e.target.dataset.max || e.target.max || 0);
-      e.target.value = clamp(e.target.value, 0, max);
-      recalcAll();
-    });
   });
 
-  // Recalcular al cargar
   recalcAll();
 });
 </script>
