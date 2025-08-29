@@ -68,6 +68,21 @@ $stmt->execute([$company_id]);
 $empresa_rfc = $stmt->fetchColumn();
 
 /* ===========================
+   Validar columnas en expenses
+   =========================== */
+$columnsToEnsure = [
+    'anticipo_saldo' => "ALTER TABLE expenses ADD COLUMN `anticipo_saldo` DECIMAL(12,2) DEFAULT NULL",
+    'status'         => "ALTER TABLE expenses ADD COLUMN `status` VARCHAR(20) DEFAULT 'pendiente'",
+    'is_anticipo'    => "ALTER TABLE expenses ADD COLUMN `is_anticipo` TINYINT(1) DEFAULT 0"
+];
+foreach ($columnsToEnsure as $col => $ddl) {
+    $check = $pdo->query("SHOW COLUMNS FROM expenses LIKE '$col'");
+    if ($check && $check->rowCount() === 0) {
+        $pdo->exec($ddl);
+    }
+}
+
+/* ===========================
    Acumuladores globales
    =========================== */
 $procesados = 0;
@@ -250,6 +265,9 @@ if (!empty($rel['aplica']) && !empty($rel['uuid'])) {
                 $i++;
             }
         }
+        if (detectarAnticipo($items)) {
+            $is_anticipo = true;
+        }
         /* ===========================
            Notas de crédito (TipoRelacion 01)
            =========================== */
@@ -366,22 +384,21 @@ if (!empty($rel['aplica']) && !empty($rel['uuid'])) {
                      payment_method_id)
                 VALUES
                     (?, ?, ?,
-                     ?, 0,
+                     ?, ?,
                      ?, ?,
                      ?, ?, ?, ?,
                      ?, ?, ?,
                      ?, ?, ?,
-                     ?, ?,
-                     NULL, NULL, ?, ?,
+                     ?, ?, ?, ?,
                      1,
-                     ?, ?,
-                     ?)
+                     ?, ?, ?)
             ");
             $stmtIns->execute([
                 $company_id,
                 $project_id ?: null,
                 $subproject_id ?: null,
                 $invoice_date_sql ?: date('Y-m-d'),
+                $totalXml,
                 $uuid,
                 $active_value,
                 $emisorNombre, $provider_id, $emisorRfc, $emisorNombre,
@@ -389,6 +406,8 @@ if (!empty($rel['aplica']) && !empty($rel['uuid'])) {
                 $forma_pago, $metodo_pago, $uso_cfdi,
                 $forma_pago,
                 $notes_post,
+                $totalXml,
+                'pendiente',
                 $is_anticipo_value,
                 $uuidRelacionadoFinal,
                 $category_name,
