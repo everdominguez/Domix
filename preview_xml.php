@@ -48,11 +48,10 @@ function parseXMLConcepts($xmlString) {
 
         // Conceptos
         foreach ($xml->xpath('//cfdi:Concepto') as $c) {
-            $cantidad = (float)$c['Cantidad'];
-            $unitario = (float)$c['ValorUnitario'];
+            $cantidad  = (float)$c['Cantidad'];
+            $unitario  = (float)$c['ValorUnitario'];
             $descuento = (float)($c['Descuento'] ?? 0.0);
-
-            $subtotal = round($cantidad * $unitario - $descuento, 2);
+            $subtotal  = round($cantidad * $unitario - $descuento, 2);
 
             // IVA
             $ivaImporte = 0.0;
@@ -91,9 +90,17 @@ $checkInv = $pdo->prepare("
       AND company_id = :company_id
     LIMIT 1
 ");
+$checkVenta   = $pdo->prepare("SELECT COUNT(*) FROM sale_items WHERE inventory_id = ?");
+$checkPreventa= $pdo->prepare("SELECT COUNT(*) FROM presale_items WHERE inventory_id = ?");
 
-$checkVenta = $pdo->prepare("SELECT COUNT(*) FROM sale_items WHERE inventory_id = ?");
-$checkPreventa = $pdo->prepare("SELECT COUNT(*) FROM presale_items WHERE inventory_id = ?");
+// === UPSERT sin 'updated_at' ===
+$stmtRel = $pdo->prepare("
+    INSERT INTO cfdi_relations (company_id, parent_uuid, child_uuid, relation_type, created_at)
+    VALUES (?, ?, ?, ?, NOW())
+    ON DUPLICATE KEY UPDATE relation_type = relation_type
+");
+
+$seenRelations = [];
 
 foreach ($_FILES['xmlfiles']['tmp_name'] as $index => $tmpPath) {
     if (!file_exists($tmpPath)) continue;
@@ -102,12 +109,11 @@ foreach ($_FILES['xmlfiles']['tmp_name'] as $index => $tmpPath) {
 
     echo "<h5 class='mt-4'>📄 Archivo " . htmlspecialchars($_FILES['xmlfiles']['name'][$index]) . "</h5>";
 
-    // === Verificar si el CFDI ya está en expenses ===
+    // ¿Ya existe en expenses?
     if ($uuidDoc) {
         $stmtExp = $pdo->prepare("SELECT id FROM expenses WHERE company_id = ? AND cfdi_uuid = ? LIMIT 1");
         $stmtExp->execute([$company_id, $uuidDoc]);
         $yaExisteGasto = $stmtExp->fetchColumn();
-
         if ($yaExisteGasto) {
             echo "<div class='alert alert-warning'>
                     ⚠️ Este CFDI ya fue cargado en gastos (ID: {$yaExisteGasto}).
@@ -116,20 +122,31 @@ foreach ($_FILES['xmlfiles']['tmp_name'] as $index => $tmpPath) {
         }
     }
 
-    // Mostrar si tiene relaciones
+    // Relaciones
     if (!empty($relacionados)) {
         foreach ($relacionados as $rel) {
-            // Verificar si el CFDI relacionado existe en expenses
+            $key = $company_id . '|' . $rel['uuid'] . '|' . $uuidDoc . '|' . $rel['tipo'];
+            if (!isset($seenRelations[$key])) {
+                $seenRelations[$key] = true;
+                try {
+                    $stmtRel->execute([$company_id, $rel['uuid'], $uuidDoc, $rel['tipo']]);
+                } catch (PDOException $e) {
+                    if ($e->getCode() === '23000' && strpos($e->getMessage(), '1062') !== false) {
+                        echo "<div class='alert alert-secondary'>
+                                ℹ️ La relación con <code>{$rel['uuid']}</code> (Tipo {$rel['tipo']}) ya existía. Se omitió crearla de nuevo.
+                              </div>";
+                    } else {
+                        echo "<div class='alert alert-danger'>
+                                ❌ Error al registrar relación: " . htmlspecialchars($e->getMessage()) . "
+                              </div>";
+                    }
+                }
+            }
+
+            // Mostrar estado del CFDI relacionado
             $stmt = $pdo->prepare("SELECT id FROM expenses WHERE company_id = ? AND cfdi_uuid = ? LIMIT 1");
             $stmt->execute([$company_id, $rel['uuid']]);
             $existe = $stmt->fetch();
-
-            // Guardar relación en cfdi_relations
-            $stmtRel = $pdo->prepare("
-                INSERT INTO cfdi_relations (company_id, parent_uuid, child_uuid, relation_type, created_at)
-                VALUES (?, ?, ?, ?, NOW())
-            ");
-            $stmtRel->execute([$company_id, $rel['uuid'], $uuidDoc, $rel['tipo']]);
 
             if ($existe) {
                 echo "<div class='alert alert-info'>
