@@ -95,6 +95,16 @@ $checkInv = $pdo->prepare("
 $checkVenta = $pdo->prepare("SELECT COUNT(*) FROM sale_items WHERE inventory_id = ?");
 $checkPreventa = $pdo->prepare("SELECT COUNT(*) FROM presale_items WHERE inventory_id = ?");
 
+$checkRelation = $pdo->prepare("
+    SELECT 1 FROM cfdi_relations
+    WHERE company_id = ? AND parent_uuid = ? AND child_uuid = ? AND relation_type = ?
+    LIMIT 1
+");
+$insertRelation = $pdo->prepare("
+    INSERT INTO cfdi_relations (company_id, parent_uuid, child_uuid, relation_type, created_at)
+    VALUES (?, ?, ?, ?, NOW())
+");
+
 foreach ($_FILES['xmlfiles']['tmp_name'] as $index => $tmpPath) {
     if (!file_exists($tmpPath)) continue;
     $xmlContent = file_get_contents($tmpPath);
@@ -124,12 +134,11 @@ foreach ($_FILES['xmlfiles']['tmp_name'] as $index => $tmpPath) {
             $stmt->execute([$company_id, $rel['uuid']]);
             $existe = $stmt->fetch();
 
-            // Guardar relación en cfdi_relations
-            $stmtRel = $pdo->prepare("
-                INSERT INTO cfdi_relations (company_id, parent_uuid, child_uuid, relation_type, created_at)
-                VALUES (?, ?, ?, ?, NOW())
-            ");
-            $stmtRel->execute([$company_id, $rel['uuid'], $uuidDoc, $rel['tipo']]);
+            // Guardar relación en cfdi_relations si no existe
+            $checkRelation->execute([$company_id, $rel['uuid'], $uuidDoc, $rel['tipo']]);
+            if (!$checkRelation->fetch()) {
+                $insertRelation->execute([$company_id, $rel['uuid'], $uuidDoc, $rel['tipo']]);
+            }
 
             if ($existe) {
                 echo "<div class='alert alert-info'>
