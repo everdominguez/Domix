@@ -241,5 +241,34 @@ foreach ($_FILES['xmlfiles']['tmp_name'] as $index => $tmpPath) {
             </tr>
           </tfoot>";
     echo "</table></div>";
+
+    // === BLOQUE FORZAR SUBIDA ===
+    if ($uuidDoc) {
+        $stmtInv = $pdo->prepare("SELECT COUNT(*) FROM inventory WHERE company_id=? AND cfdi_uuid=?");
+        $stmtInv->execute([$company_id, $uuidDoc]);
+        $yaExisteInv = $stmtInv->fetchColumn() > 0;
+
+        if ($yaExisteInv) {
+            // 🔑 Normalizamos el rol para usar tanto role como user_role
+            $role = $_SESSION['role'] ?? ($_SESSION['user_role'] ?? '');
+            if ($role === 'admin') {
+                echo "<div class='alert alert-warning mt-3'>
+                        ⚠️ Este XML ya existe en inventario. 
+                        Como administrador, puedes forzar la subida para actualizar/ajustar partidas.
+                        <form method='post' action='force_upload.php' class='mt-2'>
+                            <input type='hidden' name='uuid' value='".htmlspecialchars($uuidDoc)."'>
+                            <input type='password' name='admin_pass' class='form-control mb-2' placeholder='Contraseña admin' required>
+                            <button type='submit' class='btn btn-danger'>
+                                🔄 Forzar subida (actualizar inventario y partidas de gasto)
+                            </button>
+                        </form>
+                      </div>";
+            } else {
+                echo "<div class='alert alert-info mt-3'>
+                        🔒 El XML ya existe en inventario. Solo un administrador puede forzar la subida.
+                      </div>";
+            }
+        }
+    }
 }
 ?>

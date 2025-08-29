@@ -301,51 +301,64 @@ if ($existingExpenseId && $aplica_anticipo_07 && $uuidRelacionadoFinal) {
             throw new Exception("Debes elegir Importar a inventario y/o Importar como gasto.");
         }
 
-        /* ===========================
-           Conceptos → items
-           =========================== */
-        $conceptos = $xml->xpath('//cfdi:Conceptos/cfdi:Concepto');
-        $items = [];
-        if ($conceptos && is_array($conceptos)) {
-            $i = 0;
-            foreach ($conceptos as $c) {
-                $qty   = (float)($c['Cantidad'] ?? 0);
-                $pu    = (float)($c['ValorUnitario'] ?? 0);
-                $desc  = (string)($c['Descripcion'] ?? '');
-                $unit  = (string)($c['Unidad'] ?? '');
-                if (!$unit) $unit = (string)($c['ClaveUnidad'] ?? '');
-                $code  = (string)($c['NoIdentificacion'] ?? '');
+/* ===========================
+   Conceptos → items (consolidado)
+   =========================== */
+$conceptos = $xml->xpath('//cfdi:Conceptos/cfdi:Concepto');
+$items = [];
+if ($conceptos && is_array($conceptos)) {
+    $items_raw = [];
+    $i = 0;
+    foreach ($conceptos as $c) {
+        $qty   = (float)($c['Cantidad'] ?? 0);
+        $pu    = (float)($c['ValorUnitario'] ?? 0);
+        $desc  = (string)($c['Descripcion'] ?? '');
+        $unit  = (string)($c['Unidad'] ?? '');
+        if (!$unit) $unit = (string)($c['ClaveUnidad'] ?? '');
+        $code  = (string)($c['NoIdentificacion'] ?? '');
 
-                // IVA por concepto
-                $ivaImporte = 0.0;
-                $impuestos = $c->xpath('cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado');
-                if ($impuestos && is_array($impuestos)) {
-                    foreach ($impuestos as $t) {
-                        if ((string)$t['Impuesto'] === '002') {
-                            $ivaImporte += (float)($t['Importe'] ?? 0);
-                        }
-                    }
+        // IVA por concepto
+        $ivaImporte = 0.0;
+        $impuestos = $c->xpath('cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado');
+        if ($impuestos && is_array($impuestos)) {
+            foreach ($impuestos as $t) {
+                if ((string)$t['Impuesto'] === '002') {
+                    $ivaImporte += (float)($t['Importe'] ?? 0);
                 }
-
-                if ($qty > 0) {
-                    $margin     = isset($_POST['items'][$i]['margin']) ? (float)$_POST['items'][$i]['margin'] : 0.0;
-                    $sale_price = isset($_POST['items'][$i]['sale_price']) && $_POST['items'][$i]['sale_price'] !== ''
-                                  ? (float)$_POST['items'][$i]['sale_price'] : null;
-
-                    $items[] = [
-                        'product_code' => $code ?: null,
-                        'description'  => $desc,
-                        'unit'         => $unit ?: null,
-                        'quantity'     => $qty,
-                        'unit_price'   => $pu,
-                        'iva'          => $ivaImporte,
-                        'margin'       => $margin,
-                        'sale_price'   => $sale_price,
-                    ];
-                }
-                $i++;
             }
         }
+
+        if ($qty > 0) {
+            $margin     = isset($_POST['items'][$i]['margin']) ? (float)$_POST['items'][$i]['margin'] : 0.0;
+            $sale_price = isset($_POST['items'][$i]['sale_price']) && $_POST['items'][$i]['sale_price'] !== ''
+                          ? (float)$_POST['items'][$i]['sale_price'] : null;
+
+            // Clave única por producto y precio unitario
+            $key = ($code ?: 'SIN-CODIGO') . '|' . number_format($pu, 6, '.', '');
+
+            if (!isset($items_raw[$key])) {
+                $items_raw[$key] = [
+                    'product_code' => $code ?: null,
+                    'description'  => $desc,
+                    'unit'         => $unit ?: null,
+                    'quantity'     => 0,
+                    'unit_price'   => $pu,
+                    'iva'          => 0.0,
+                    'margin'       => $margin,
+                    'sale_price'   => $sale_price,
+                ];
+            }
+
+            // Acumular cantidades e IVA
+            $items_raw[$key]['quantity'] += $qty;
+            $items_raw[$key]['iva']      += $ivaImporte;
+        }
+        $i++;
+    }
+
+    // Convertir a array final
+    $items = array_values($items_raw);
+}
 
         /* ===========================
            Notas de crédito (TipoRelación 01)
